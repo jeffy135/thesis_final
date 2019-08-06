@@ -5,26 +5,12 @@ Allow me to describe the code.
 
 There are two main layers to the code: 
 
+Outter layer takes x0 as input
+-inner layer takes x0 as a constant, and it spits out a distance metric
+based on distance metric, x0 is updated. 
 
-+----------------------------------+---------+------------------------+----------------+
-|               Col1               |  Col2   |          Col3          | Numeric Column |
-+----------------------------------+---------+------------------------+----------------+
-| Value 1                          | Value 2 | 123                    |           10.0 |
-| Separate                         | cols    | with a tab or 4 spaces |       -2,027.1 |
-| This is a row with only one cell |         |                        |                |
-+----------------------------------+---------+------------------------+----------------+
-
-|------------ outter layer takes x0 as input-------------------------|
-|                                                                    |
-|        _____________________________________________________       |
-|        |        inner layer takes x0 as a constant         |       |
-|        |       all of the inner layer code is in           |       |
-|        |         b_household_computations.py.              |       |
-|        |       this inner code will spit out a             |       |
-|        |               distance metric.                    |       |
-|        |___________________________________________________|       |
-|                                                                    |
-|-- the outter layer takes the above distance metric and update x0 --|
+All of "inner layer" code is in  b_household_computations.py. 
+All of "outter layer" code is in smm_wrap.py
 
 
 When I enable parallel processing for any part of the code (I think I might have a deadlock): 
