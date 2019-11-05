@@ -6,8 +6,8 @@ from b_household_computations import *
 
 # World &  Economy constants
 city_count = 5 #@@citycount
-theta = 0.6
-delta = 0.01
+theta = 0.2
+delta = 0.015
 log_distance_df = pd.read_csv("_data/output/log_distances.csv", index_col=0).iloc[:city_count, :city_count]
 log_distance_array = log_distance_df.values
 
@@ -91,7 +91,7 @@ def smm_obj(x):
     agglo_param = x[3]
 
     # Demand-side constants
-    discount = 0.85
+    discount = 0.95
 
 
     # Supply-side constants
@@ -118,9 +118,9 @@ def smm_obj(x):
         if period==0:
             current_period_year = str(period + 2010)
             next_period_year = str(period+2011)
-            print("initialize")
+            # print("initialize")
             # Initialize population
-            Population = InitPopulation()
+            Population = InitPopulation(calibration=False)
             period_world_data = Population.Generate_World()
 
             # Save demographic information
@@ -140,18 +140,18 @@ def smm_obj(x):
             np.savetxt("_computedResults/period" + str(current_period_year) + "_beliefs.csv", world_beliefs, delimiter=",")
 
             # Obtain period land prices
-            residential_land_price_df = pd.read_csv("_data\output\scoped_residential.csv")
+            residential_land_price_df = pd.read_csv("_data\output\scoped_residential_eng.csv")
             residential_land_price = np.array(residential_land_price_df[current_period_year][:city_count])
             residential_land_price_lst = list(residential_land_price)
 
-            production_land_prices_df = pd.read_csv("_data\output\scoped_industry.csv")
+            production_land_prices_df = pd.read_csv("_data\output\scoped_industry_eng.csv")
             production_land_price = np.array(production_land_prices_df[current_period_year][:city_count])
             production_land_price_lst = list(production_land_price)
             supply_parameters_t = np.array([tfp_loc, agglo_param, alpha, beta]+residential_land_price_lst + production_land_price_lst) # @@?? might need to initiate this when I am SMM-ing
 
             # Produce initial price vector.
-            hpt0_df = pd.read_csv("_data/output/scoped_home_prices.csv", index_col=0).loc[:, current_period_year][:city_count]
-            wages_df = pd.read_csv("_data/output/scoped_wages_avg.csv", index_col=0).loc[:, current_period_year][:city_count]
+            hpt0_df = pd.read_csv("_data/output/scoped_home_prices_eng.csv", index_col=0).loc[:, current_period_year][:city_count]
+            wages_df = pd.read_csv("_data/output/scoped_wages_avg_eng.csv", index_col=0).loc[:, current_period_year][:city_count]
 
             initial_nd_price_origins = np.ones(city_count) * 10000.
             initial_hpt0 = hpt0_df.values
@@ -161,10 +161,9 @@ def smm_obj(x):
 
             # Execute market clearing
             mkcl_args = (period_world_data, city_raw_productivty_draws, supply_parameters_t, migration_proportion, iceberg_proportion)
-            _market_clearing_info = optimize.minimize(market_clearing_pseudo, initial_PRICES, args=mkcl_args, method='Nelder-Mead', options={'maxiter':2})  ##@@@iter
+            _market_clearing_info = optimize.minimize(market_clearing_pseudo, initial_PRICES, args=mkcl_args, method='Nelder-Mead', options={'maxiter':1})  ##@@@iter
             # _market_clearing_info = nelder_mead(market_clearing_pseudo, initial_PRICES, args=mkcl_args, tol_f=0.01, tol_x=0.1, max_iter=1)  ##@@@iter
-            print("market_clearing_objective complete")
-            # _market_clearing_info = optimize.root(market_clearing_objective, initial_PRICES, args=mkcl_args, method='hybr', options={'maxfev':1, 'xtol':10.})
+            # print("market_clearing_objective complete")
 
             # Reassign market prices
             ths_market_clearing_prices = _market_clearing_info.x
@@ -193,8 +192,6 @@ def smm_obj(x):
             for i in range(len(clean_info_order)):
                 parsed_information.append(parse_world(period_world_data, nxt_market_clearing_initial_prices, A_Whole_New_World, ths_market_clearing_prices, update_belief, city_count,  clean_info_order[i]))
 
-            # parsed_information = Parallel()(delayed(parse_world)(period_world_data, nxt_market_clearing_initial_prices, A_Whole_New_World, ths_market_clearing_prices, update_belief, city_count,  clean_info_order[i]) for i in range(len(clean_info_order)))
-
             ths_utility_data, ths_population_data, ths_consumption_data, ths_housingD_data, ths_housingS_data, ths_q_data, ths_beliefs_data, ths_individual_atts =  parsed_information
 
             # Save all data
@@ -211,29 +208,29 @@ def smm_obj(x):
         else:
             current_period_year = str(period + 2010)
             next_period_year = str(period+2011)
-            print("continue" + str(current_period_year))
+            # print("continue" + str(current_period_year))
 
             # Initialize population, recalling from previous period
             period_world_data = period_world_data_anchor
 
             # Obtain period land prices
-            residential_land_price_df = pd.read_csv("_data\output\scoped_residential.csv")
+            residential_land_price_df = pd.read_csv("_data\output\scoped_residential_eng.csv")
             residential_land_price = np.array(residential_land_price_df[current_period_year][:city_count])
             residential_land_price_lst = list(residential_land_price)
 
-            production_land_prices_df = pd.read_csv("_data\output\scoped_industry.csv")
+            production_land_prices_df = pd.read_csv("_data\output\scoped_industry_eng.csv")
             production_land_price = np.array(production_land_prices_df[current_period_year][:city_count])
             production_land_price_lst = list(production_land_price)
             supply_parameters_t = np.array([tfp_loc, agglo_param, alpha, beta] + residential_land_price_lst + production_land_price_lst)  # @@?? might need to initiate this when I am SMM-ing
 
             # Produce initial price vector, recalling from previous period's market clearing price.
             initial_PRICES = nxt_market_clearing_initial_prices
-            print("Begin market clearing")
+            # print("Begin market clearing")
             # Execute market clearing
             mkcl_args = (period_world_data, city_raw_productivty_draws, supply_parameters_t, migration_proportion, iceberg_proportion)
-            _market_clearing_info = optimize.minimize(market_clearing_pseudo, initial_PRICES, args=mkcl_args, method='Nelder-Mead', options={'maxiter': 2})  ##@@@iter
+            _market_clearing_info = optimize.minimize(market_clearing_pseudo, initial_PRICES, args=mkcl_args, method='Nelder-Mead', options={'maxiter': 1})  ##@@@iter
             # _market_clearing_info = nelder_mead(market_clearing_pseudo, initial_PRICES, args=mkcl_args, max_iter=1)  ##@@@iter
-            print("market_clearing_objective complete")
+            # print("market_clearing_objective complete")
 
             # Reassign market prices
             ths_market_clearing_prices = _market_clearing_info.x
@@ -276,7 +273,7 @@ def smm_obj(x):
 
             nxt_market_clearing_initial_prices = ths_market_clearing_prices
             period_world_data_anchor = ths_individual_atts
-            print("... completed ", current_period_year)
+            # print("... completed ", current_period_year)
 
     # Compute data moments
     ## compute generated moments for wage changes
@@ -366,10 +363,10 @@ def smm_obj(x):
     observed_data_totalpopulation = dataframe_totalpopulation_pct.iloc[:, 1:].values
 
     # Read in the realworld data
-    realworld_data_gdp = pd.read_csv("_data\output\perchg_gdp.csv").iloc[:city_count, 2:].values
-    realworld_data_wages = pd.read_csv("_data\output\perchg_wages_avg.csv").iloc[:city_count, 2:].values
-    realworld_data_houseprices = pd.read_csv("_data\output\perchg_home_prices.csv").iloc[:city_count, 2:].values
-    realworld_data_population = pd.read_csv("_data\output\perchg_population.csv").iloc[:city_count, 2:].values
+    realworld_data_gdp = pd.read_csv("_data\output\perchg_gdp_eng.csv").iloc[:city_count, 2:].values
+    realworld_data_wages = pd.read_csv("_data\output\perchg_wages_avg_eng.csv").iloc[:city_count, 2:].values
+    realworld_data_houseprices = pd.read_csv("_data\output\perchg_home_prices_eng.csv").iloc[:city_count, 2:].values
+    realworld_data_population = pd.read_csv("_data\output\perchg_population_eng.csv").iloc[:city_count, 2:].values
 
     # Compute distance between generated data and realworld data
     DataDistance_gdp = np.linalg.norm(np.nan_to_num(observed_data_gdp - realworld_data_gdp))
@@ -377,15 +374,28 @@ def smm_obj(x):
     DataDistance_houseprices = np.linalg.norm(np.nan_to_num(observed_data_houseprices - realworld_data_houseprices))
     DataDistance_population = np.linalg.norm(np.nan_to_num(observed_data_totalpopulation - realworld_data_population))
 
-    print("DataDistance_gdp: ", DataDistance_gdp)
-    print("DataDistance_wages: ", DataDistance_wages)
-    print("DataDistance_houseprices: ", DataDistance_houseprices)
-    print("DataDistance_population: ", DataDistance_population)
+    # print("DataDistance_gdp: ", DataDistance_gdp)
+    # print("DataDistance_wages: ", DataDistance_wages)
+    # print("DataDistance_houseprices: ", DataDistance_houseprices)
+    # print("DataDistance_population: ", DataDistance_population)
 
     DataDistance_Total = DataDistance_gdp + DataDistance_wages + DataDistance_houseprices + DataDistance_population
-    print("DataDistance_Total: ", DataDistance_Total)
+    # print("DataDistance_Total: ", DataDistance_Total)
     return(-DataDistance_Total)
 
 if __name__=="__main__":
-    initial_smm_parameters = np.array([8., 0.02, 1, 0.042])
-    print(optimize.minimize(smm_obj, initial_smm_parameters, method='Nelder-Mead', options={'maxiter':2}))
+    import datetime
+    currentDT = datetime.datetime.now()
+    np.seterr(all='ignore')
+
+    Nfeval = 1
+    def callbackF(Xi):
+        global Nfeval
+        print('{0:5d}       {1: .9f}       {2: .9f}     {3: .9f}        {4: .9f}'.format(Nfeval, Xi[0], Xi[1], Xi[2], Xi[3]))
+        Nfeval += 1
+    print("=========================================")
+    print("Begin Calibration of Friction Parameters (no rental market; 1,500,000 : 1). Start time: ", currentDT.strftime("%Y-%m-%d %H:%M"))
+    print("=========================================")
+    print('{0:10s}      {1:15s}     {2:15s}     {3:15s}     {4:15s}'.format("Iteration", "Migration", "Iceberg", "TFP center", "agglom."))
+    initial_smm_parameters = np.array([80., 0.02, 1, 0.042])
+    optimize.minimize(smm_obj, initial_smm_parameters, method='Nelder-Mead', callback=callbackF, options={'maxiter':1})
